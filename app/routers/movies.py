@@ -16,6 +16,19 @@ MovieRespone = movieSchema.MovieResponse
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
+
+def get_paging_state(response):
+        if 'paging_state' in response: 
+            return response['paging_state'] 
+        else: 
+            return '' 
+
+#################################################################################################################################
+#WARNING: paging state should be cached in server side per user session ? , since it can be forged to access different partitions
+#################################################################################################################################
+
+
+
 @router.get("/getMovies", response_model=MovieRespone)
 def get_movies(paging_state:str=None, token: str = Depends(oauth2_scheme)):
     db_session = get_cassandra_session()
@@ -23,6 +36,8 @@ def get_movies(paging_state:str=None, token: str = Depends(oauth2_scheme)):
     return {
         'movies':response['result_list'],
         'has_more_pages':response['has_more_pages'],
-        'paging_state':response['paging_state']       
-         #WARNING: paging state should be cached in server side per user session ? , since it can be forged to access different partitions
+        'paging_state': get_paging_state(response)            
     }
+
+
+    

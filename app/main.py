@@ -19,10 +19,3 @@ app = FastAPI()
 app.include_router(users.router)
 app.include_router(movies.router)
 
-
-
-
-# results = movies.get_movies_from_db(session,None)
-# print(results)
-
-

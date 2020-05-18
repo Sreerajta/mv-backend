@@ -11,4 +11,4 @@ class Movie(BaseModel):
 class MovieResponse(BaseModel):
     movies:List[Movie] =[]
     has_more_pages:bool
-    paging_state:typing.Any
+    paging_state:str

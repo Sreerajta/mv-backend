@@ -21,7 +21,6 @@ def get_cassandra_session():
     session = cluster.connect()
     session.set_keyspace('test_keyspace')
     session.row_factory = dict_factory
-    # connection.register_connection('default_cas', session=session)
     return session
     
 
