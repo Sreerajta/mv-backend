@@ -19,7 +19,7 @@ def unregister_cassandra_connection():
 def get_cassandra_session():
     cluster = Cluster(protocol_version=3)
     session = cluster.connect()
-    session.set_keyspace('test_keyspace')
+    session.set_keyspace(cassandra_config['default_keyspace'])
     session.row_factory = dict_factory
     return session
     
