@@ -7,6 +7,7 @@ from cassandra.query import SimpleStatement
 from app.schemas import movies as movieSchema 
 import uuid
 from base64 import b64encode , b64decode
+import re
 
 DATA_FETCH_SIZE_MOVIE = 5
 
@@ -26,7 +27,7 @@ def get_movie_from_omdb(movie_name):
 
 
 def get_movies_from_db (db_session,paging_state):
-    query = 'SELECT * from movie_model'
+    query = 'SELECT * from movies_list'
     statement = SimpleStatement(query ,fetch_size=DATA_FETCH_SIZE_MOVIE)
     if paging_state:
         paging_state = b64decode(paging_state) 
@@ -49,7 +50,8 @@ def get_movies_from_db (db_session,paging_state):
                 'title': row['title'],
                 'plot': row['plot'],
                 'rating':row['rating'],
-                'genres':list(row['genres'])
+                'genres':row['genres'],
+                'poster':row['poster']
                 })
             count += 1
         else:
