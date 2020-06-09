@@ -8,6 +8,10 @@ from app.schemas import movies as movieSchema
 import uuid
 from base64 import b64encode , b64decode
 import re
+import json
+
+import greenstalk
+queue = greenstalk.Client(host='127.0.0.1', port=11305) #edit here for beasntalk params MOVE THIS TO CONNECTIONS
 
 DATA_FETCH_SIZE_MOVIE = 5
 
@@ -59,4 +63,10 @@ def get_movies_from_db (db_session,paging_state):
     return response_dict
 
 
+def upvote_movie(user,movie_id):
+    queue.use('upvotes')
+    vote = {"user":user,
+            "movie_id":movie_id}    
+    vote_serialised = json.dumps(vote)
+    queue.put(vote_serialised)
         

@@ -8,6 +8,7 @@ import uuid
 class MovieModel(Model):
     id      = columns.UUID(primary_key=True, default=uuid.uuid4)
     rating    = columns.Float()
+    votes     = columns.BigInt(default=0)
     title     = columns.Text(required=False)
     plot     = columns.Text(required=False)
     genres   = columns.Text(required=False)

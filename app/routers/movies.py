@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import app.schemas.movies as movieSchema
 import app.utils.movies as movieUtils
 import app.connections.cassandra_db as cassandra_db
+import jwt
 
 get_cassandra_session = cassandra_db.get_cassandra_session
 
@@ -15,6 +16,11 @@ MovieRespone = movieSchema.MovieResponse
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+
+
+
+
+
 
 
 def get_paging_state(response):
@@ -38,6 +44,13 @@ def get_movies(paging_state:str=None, token: str = Depends(oauth2_scheme)):
         'has_more_pages':response['has_more_pages'],
         'paging_state': get_paging_state(response)            
     }
+
+
+@router.get("/upvoteMovie")
+def upvote_movie(movie_id:str,token: str = Depends(oauth2_scheme)):
+    token_decoded = jwt.decode(token,"jkasgfjasgfkjgas9867876jukfbas54536asf4fufy7",algorithms=['HS256'])
+    user = token_decoded['sub']
+    movieUtils.upvote_movie(user,movie_id)
 
 
     
