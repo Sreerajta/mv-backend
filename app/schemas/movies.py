@@ -1,6 +1,6 @@
-from typing import List
+from typing import List 
 
-from pydantic import BaseModel,typing
+from pydantic import BaseModel,typing,UUID1
 
 class Movie(BaseModel):
     title: str
@@ -8,6 +8,8 @@ class Movie(BaseModel):
     genres: str
     plot: str
     poster:str
+    votes:int
+    id:UUID1
 
 class MovieResponse(BaseModel):
     movies:List[Movie] =[]

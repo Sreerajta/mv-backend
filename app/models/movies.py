@@ -13,3 +13,7 @@ class MovieModel(Model):
     plot     = columns.Text(required=False)
     genres   = columns.Text(required=False)
     poster   = columns.Text(required=False)
+
+class UpvotesModel(Model):
+    user_id = columns.Text(primary_key=True)
+    movie_id = columns.UUID(primary_key=True, clustering_order="DESC")

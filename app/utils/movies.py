@@ -3,15 +3,20 @@ import requests
 from datetime import datetime
 from app.models import movies as movie_model
 import global_config
-from cassandra.query import SimpleStatement
+from cassandra.query import SimpleStatement, ValueSequence
 from app.schemas import movies as movieSchema 
 import uuid
 from base64 import b64encode , b64decode
 import re
 import json
 
+######
+import redis
+r = redis.Redis(host='localhost', port=6379, db=0)
 import greenstalk
 queue = greenstalk.Client(host='127.0.0.1', port=11305) #edit here for beasntalk params MOVE THIS TO CONNECTIONS
+queue.use('upvotes')
+######
 
 DATA_FETCH_SIZE_MOVIE = 5
 
@@ -63,8 +68,36 @@ def get_movies_from_db (db_session,paging_state):
     return response_dict
 
 
+def get_top_movies_from_redis(count:int):
+    res_set = r.zrange('movies', 0, count, withscores=True,desc=True)
+    return res_set
+
+def get_movies_from_db2(db_session):
+    result_dict  = {
+        'has_more_pages':True,
+        'result_list':[]
+        }
+    top_movies = get_top_movies_from_redis(10)
+    top_ids = []
+    for movie in top_movies:
+        top_ids.append(uuid.UUID(movie[0].decode("utf-8")))
+    query = 'SELECT * FROM movie_model WHERE id IN %s'
+    statement = SimpleStatement(query)
+    results = db_session.execute(statement,parameters=[ValueSequence(top_ids)])
+    for row in results:
+        result_dict['result_list'].append({
+                'title': row['title'],
+                'plot': row['plot'],
+                'rating':row['rating'],
+                'genres':row['genres'],
+                'poster':row['poster'],
+                'votes':row['votes'],
+                'id':row['id']
+                })
+    return result_dict
+
+
 def upvote_movie(user,movie_id):
-    queue.use('upvotes')
     vote = {"user":user,
             "movie_id":movie_id}    
     vote_serialised = json.dumps(vote)

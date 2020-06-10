@@ -7,3 +7,4 @@ from . import users as user_model
 def sync_models():
     user_model.Base.metadata.create_all(bind=engine)
     sync_table(movies.MovieModel)
+    sync_table(movies.UpvotesModel)
