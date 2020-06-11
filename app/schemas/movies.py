@@ -10,6 +10,7 @@ class Movie(BaseModel):
     poster:str
     votes:int
     id:UUID1
+    user_voted:str
 
 class MovieResponse(BaseModel):
     movies:List[Movie] =[]

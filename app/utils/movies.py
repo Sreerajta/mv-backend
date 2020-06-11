@@ -34,6 +34,12 @@ def get_movie_from_omdb(movie_name):
     return r.json()
 
 
+def if_user_voted(user_upvoted_movies,movie_id):
+    if movie_id in user_upvoted_movies:
+        return 'true'
+    else:
+        return 'false'
+
 
 def get_movies_from_db (db_session,paging_state):
     query = 'SELECT * from movies_list'
@@ -72,7 +78,7 @@ def get_top_movies_from_redis(count:int):
     res_set = r.zrange('movies', 0, count, withscores=True,desc=True)
     return res_set
 
-def get_movies_from_db2(db_session):
+def get_movies_from_db2(db_session,user):
     result_dict  = {
         'has_more_pages':True,
         'result_list':[]
@@ -84,6 +90,12 @@ def get_movies_from_db2(db_session):
     query = 'SELECT * FROM movie_model WHERE id IN %s'
     statement = SimpleStatement(query)
     results = db_session.execute(statement,parameters=[ValueSequence(top_ids)])
+    user_upvote_query = 'SELECT movie_id FROM upvotes_model WHERE user_id=%s and movie_id IN %s'
+    user_upvotes_statement =SimpleStatement(user_upvote_query)
+    user_upvotes = db_session.execute(user_upvotes_statement,[user,ValueSequence(top_ids)])
+    user_upvoted_movies =[]
+    for row in user_upvotes:
+        user_upvoted_movies.append(row['movie_id'])
     for row in results:
         result_dict['result_list'].append({
                 'title': row['title'],
@@ -92,7 +104,8 @@ def get_movies_from_db2(db_session):
                 'genres':row['genres'],
                 'poster':row['poster'],
                 'votes':row['votes'],
-                'id':row['id']
+                'id':row['id'],
+                'user_voted':if_user_voted(user_upvoted_movies,row['id'])
                 })
     return result_dict
 
