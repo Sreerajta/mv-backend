@@ -25,11 +25,11 @@ db_session = get_cassandra_session()
 
 
 
-def get_paging_state(response):
-        if 'paging_state' in response: 
-            return response['paging_state'] 
-        else: 
-            return '' 
+# def get_paging_state(response):
+#         if 'paging_state' in response: 
+#             return response['paging_state'] 
+#         else: 
+#             return '' 
 
 #################################################################################################################################
 #WARNING: paging state should be cached in server side per user session ? , since it can be forged to access different partitions
@@ -38,15 +38,15 @@ def get_paging_state(response):
 
 
 @router.get("/getMovies", response_model=MovieRespone)
-def get_movies(paging_state:str=None, token: str = Depends(oauth2_scheme)):
+def get_movies(paging_state:int=1, token: str = Depends(oauth2_scheme)):
     token_decoded = jwt.decode(token,"jkasgfjasgfkjgas9867876jukfbas54536asf4fufy7",algorithms=['HS256']) #TODO:read from config
     user = token_decoded['sub']
-    response = movieUtils.get_movies_from_db2(db_session,user)
+    response = movieUtils.get_movies_from_db2(db_session,user,paging_state)
     # response = movieUtils.get_movies_from_db(db_session,paging_state)
     return {
         'movies':response['result_list'],
         'has_more_pages':response['has_more_pages'],
-        'paging_state': get_paging_state(response)            
+        'paging_state': paging_state +1         
     }
 
 
@@ -56,6 +56,7 @@ def upvote_movie(movie_id:str,token: str = Depends(oauth2_scheme)):
     token_decoded = jwt.decode(token,"jkasgfjasgfkjgas9867876jukfbas54536asf4fufy7",algorithms=['HS256']) #TODO:read from config
     user = token_decoded['sub']
     movieUtils.upvote_movie(user,movie_id)
+    return True
 
 
     

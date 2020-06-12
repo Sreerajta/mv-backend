@@ -74,16 +74,17 @@ def get_movies_from_db (db_session,paging_state):
     return response_dict
 
 
-def get_top_movies_from_redis(count:int):
-    res_set = r.zrange('movies', 0, count, withscores=True,desc=True)
+def get_top_movies_from_redis(count:int,page:int):
+    offset = (page-1) * count
+    res_set = r.zrange('movies', offset, offset+count-1, withscores=True,desc=True)
     return res_set
 
-def get_movies_from_db2(db_session,user):
+def get_movies_from_db2(db_session,user,paging_state):
     result_dict  = {
         'has_more_pages':True,
         'result_list':[]
         }
-    top_movies = get_top_movies_from_redis(10)
+    top_movies = get_top_movies_from_redis(10,paging_state)
     top_ids = []
     for movie in top_movies:
         top_ids.append(uuid.UUID(movie[0].decode("utf-8")))
