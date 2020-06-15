@@ -26,6 +26,8 @@ def get_cassandra_session():
 r = redis.Redis(host='localhost', port=6379, db=0)
 queue = greenstalk.Client(host='127.0.0.1', port=11305)
 queue.watch('upvotes')
+queue2 = greenstalk.Client(host='127.0.0.1', port=11305)
+queue2.use('timeline_votes_produce')
 
 cassandra_session = get_cassandra_session()
 
@@ -54,5 +56,6 @@ while(True):
         new_vote = int(cur_value) + 1
         query = 'UPDATE movie_model SET votes=%s WHERE id=%s'
         cassandra_session.execute(query,[new_vote,movie_id_uuid])
-        r.zincrby('movies', 1, movie_id)        
+        r.zincrby('movies', 1, movie_id)
+        queue2.put(movie_id)        
     queue.delete(job)   #TODO:bury/ put into failed queue instead of deleting if update fails
