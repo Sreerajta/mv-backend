@@ -7,7 +7,9 @@ from time import sleep
 import app.schemas.movies as movieSchema
 import app.utils.movies as movieUtils
 import app.connections.cassandra_db as cassandra_db
+from cassandra.query import SimpleStatement, ValueSequence,PreparedStatement
 import jwt
+import fnc
 
 get_cassandra_session = cassandra_db.get_cassandra_session
 
@@ -60,9 +62,26 @@ def upvote_movie(movie_id:str,token: str = Depends(oauth2_scheme)):
 
 
 @router.get("/test")
-def test_ids(token: str = Depends(oauth2_scheme)):
+async def test_ids(token: str = Depends(oauth2_scheme)):
     token_decoded = jwt.decode(token,"jkasgfjasgfkjgas9867876jukfbas54536asf4fufy7",algorithms=['HS256']) #TODO:read from config
     user = token_decoded['sub']
-    res = movieUtils.get_movies_from_db_temp(db_session,user)
+    res = await movieUtils.get_movies_from_db_temp(db_session,user)
     return res
+
+@router.get("/dummy")
+async def dummy():
+    query = 'SELECT * FROM movie_model LIMIT 5'
+    # statement = SimpleStatement(query)
+    future = db_session.execute_async(query)
+    def handle_success(rows):
+        result = list(fnc.map({'id','genres'},rows))
+        print(result)
+        return result
+    
+
+    def handle_error(exception):
+        print("Failed to fetch user info: %s", exception)
+    
+    future.add_callbacks(handle_success, handle_error)
+    
     
