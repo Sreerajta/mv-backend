@@ -62,11 +62,15 @@ def upvote_movie(movie_id:str,token: str = Depends(oauth2_scheme)):
 
 
 @router.get("/test")
-async def test_ids(token: str = Depends(oauth2_scheme)):
+async def test_ids(paging_state:int=0,genre_filter:str='Action,Comedy', token:str = Depends(oauth2_scheme)):
     token_decoded = jwt.decode(token,"jkasgfjasgfkjgas9867876jukfbas54536asf4fufy7",algorithms=['HS256']) #TODO:read from config
     user = token_decoded['sub']
-    res = await movieUtils.get_movies_from_db_temp(db_session,user)
-    return res
+    response,counter,cache_pointer = await movieUtils.get_movies_from_db_temp(db_session,user,genre_filter,paging_state)
+    return {
+        'movies':response['result_list'],
+        'has_more_pages':response['has_more_pages'],
+        'paging_state': cache_pointer         
+    }
 
 @router.get("/dummy")
 async def dummy():

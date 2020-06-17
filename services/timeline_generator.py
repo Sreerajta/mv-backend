@@ -33,29 +33,48 @@ timeline_genre_combo = 'Action,Comedy,Drama'
 #update timeline lookup table to ready, add entries to genre to timeline mappings
 
 
-#NEEDS A STATIC LIST OF MOVIE + GENRE TO BUILD TIMELINE..
+#NEEDS A STATIC LIST OF MOVIE + GENRE TO BUILD TIMELINE..? Edit:No , the timelines get synchronised when someone upvotes a movie 
+count = 0 
 
-def get_movies_from_db_build_timeline(db_session):
+def get_movies_from_db_build_timeline(db_session,timeline_genre_combo):
+    print('Starting to build timeline for: ',timeline_genre_combo)
     genre_filter = timeline_genre_combo.split(',')
     query = 'SELECT * from movie_model'
     statement = SimpleStatement(query)
     results = db_session.execute(statement)
-    # paging_state = results.paging_state
-    count = 0 
+    # paging_state = results.paging_state    
     for row in results:                      #the cassandra driver auto paginates here
         # genres_list = []
         genres = row['genres']
         genres = genres.split(',')
         genres_list = list(map(lambda genre:genre.strip(),genres))
         intersection = set(genres_list).intersection(genre_filter)
-        if len(intersection) > 0:
-            count += 1
+        if len(intersection) > 0:            
             score = row['votes']
-            movie_id = str(row['id'])
-            temp_dict = {
-                movie_id:score
-            }
-            r.zadd(timeline_genre_combo, temp_dict)
-            print('movies_added:',count)
+            movie_id_uuid = row['id']
+            movie_id = str(movie_id_uuid)
+            query = """
+            INSERT INTO timelines (name,movie_id,rating,votes,title,plot,genres,poster)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            future = cassandra_session.execute_async(query,[timeline_genre_combo,movie_id_uuid,row['rating'],row['votes'],row['title'],row['plot'],row['genres'],row['poster']])
+            def on_query_success(query_res):
+                global count
+                count += 1
+                temp_dict = {
+                    movie_id:score
+                }
+                r.zadd(timeline_genre_combo, temp_dict)
+                print('movies_added:',count)
 
-get_movies_from_db_build_timeline(cassandra_session)
+            def on_query_error(exception):
+                print('failed to index %s',exception)
+                return
+        
+            future.add_callbacks(on_query_success, on_query_error)            
+
+get_movies_from_db_build_timeline(cassandra_session,timeline_genre_combo)
+# query = 'select COUNT(*) from timelines where name =%s'
+# rows = cassandra_session.execute(query,["Action,Comedy,Drama"])
+# for row in rows:
+#     print(row)

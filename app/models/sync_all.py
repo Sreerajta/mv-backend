@@ -8,3 +8,5 @@ def sync_models():
     user_model.Base.metadata.create_all(bind=engine)
     sync_table(movies.MovieModel)
     sync_table(movies.UpvotesModel)
+    sync_table(movies.GenreToTimelineMappings)
+    sync_table(movies.Timelines)

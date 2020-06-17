@@ -82,7 +82,8 @@ def get_top_movies_from_redis_timelines(timelines:list,count:int,page:int):
 
 
 def get_top_movies_from_redis(count:int,page:int):
-    offset = (page-1) * count
+    # offset = (page-1) * count
+    offset = page + 1
     res_set = r.zrange('movies', offset, offset+count-1, withscores=True,desc=True)
     return res_set
 
@@ -141,28 +142,17 @@ async def get_data_from_main_db(db_session,user,movie_ids):
             'poster':result['poster'],
             'votes':result['votes'],
             'id':result['id'],'user_voted':if_user_voted(user_upvoted_movies,result['id'])},results))
-    # for row in results:
-    #     result_dict['result_list'].append({
-    #         'title': row['title'],
-    #         'plot': row['plot'],
-    #         'rating':row['rating'],
-    #         'genres':row['genres'],
-    #         'poster':row['poster'],
-    #         'votes':row['votes'],
-    #         'id':row['id'],
-    #         'user_voted':if_user_voted(user_upvoted_movies,row['id'])
-    #     })
     return result_dict
 
-async def get_movies_from_db_temp(db_session,user):    
+async def get_movies_from_db_temp(db_session,user,genre_filter,paging_state):    
     counter = 0
-    cache_pointer = 0
+    cache_pointer = paging_state
     result_ids = []
-    res = get_top_movies_from_redis(100,1)
+    res = get_top_movies_from_redis(1000,paging_state)
     top_ids = []
     for movie in res:
         top_ids.append(movie[0])
-    genre_filter = ['Game-Show','Action']
+    genre_filter = genre_filter.split(',')
     pipe = r.pipeline()
     for top_id in top_ids:
         pipe.hmget(top_id,genre_filter)
@@ -174,54 +164,10 @@ async def get_movies_from_db_temp(db_session,user):
             counter +=1 
             if counter == 10:
                 result_dict = await get_data_from_main_db(db_session,user,result_ids)
-                #
-                # query = 'SELECT * FROM movie_model WHERE id IN %s'
-                # statement = SimpleStatement(query)
-                # results = db_session.execute(statement,parameters=[ValueSequence(result_ids)])
-                # user_upvote_query = 'SELECT movie_id FROM upvotes_model WHERE user_id=%s and movie_id IN %s'
-                # user_upvotes_statement =SimpleStatement(user_upvote_query)
-                # user_upvotes = db_session.execute(user_upvotes_statement,[user,ValueSequence(result_ids)])
-                # user_upvoted_movies =[]
-                # for row in user_upvotes:
-                #     user_upvoted_movies.append(row['movie_id'])
-                # for row in results:
-                #     result_dict['result_list'].append({
-                #         'title': row['title'],
-                #         'plot': row['plot'],
-                #         'rating':row['rating'],
-                #         'genres':row['genres'],
-                #         'poster':row['poster'],
-                #         'votes':row['votes'],
-                #         'id':row['id'],
-                #         'user_voted':if_user_voted(user_upvoted_movies,row['id'])
-                #     })
-                return result_dict,counter,cache_pointer
-        
-    
+                return result_dict,counter,cache_pointer  
     result_dict = await get_data_from_main_db(db_session,user,result_ids)
-    #
-    # query = 'SELECT * FROM movie_model WHERE id IN %s'
-    # statement = SimpleStatement(query)
-    # results = db_session.execute(statement,parameters=[ValueSequence(result_ids)])
-    # user_upvote_query = 'SELECT movie_id FROM upvotes_model WHERE user_id=%s and movie_id IN %s'
-    # user_upvotes_statement =SimpleStatement(user_upvote_query)
-    # user_upvotes = db_session.execute(user_upvotes_statement,[user,ValueSequence(result_ids)])
-    # user_upvoted_movies =[]
-    # for row in user_upvotes:
-    #     user_upvoted_movies.append(row['movie_id'])
-    # for row in results:
-    #     result_dict['result_list'].append({
-    #             'title': row['title'],
-    #             'plot': row['plot'],
-    #             'rating':row['rating'],
-    #             'genres':row['genres'],
-    #             'poster':row['poster'],
-    #             'votes':row['votes'],
-    #             'id':row['id'],
-    #             'user_voted':if_user_voted(user_upvoted_movies,row['id'])
-    #             })
     return result_dict,counter,cache_pointer
-    #
+    
     # return result_ids,counter,cache_pointer
 
 
