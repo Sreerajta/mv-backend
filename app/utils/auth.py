@@ -53,6 +53,7 @@ def authenticate_user(db:Session, email: str, password: str):
     return user
 
 
+
 def create_access_token(*, data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:

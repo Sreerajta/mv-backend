@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException,status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
+import jwt
 
 from app import connections
 import app.utils.users as userUtils
@@ -51,6 +52,11 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),db: 
     )
     return {"access_token": access_token, "token_type": "bearer","genre_combo":user.genre_combo}
 
-
+@router.get("/userGenres")
+def get_genre_combo(token:str = Depends(oauth2_scheme),db: Session = Depends(get_db)):
+    token_decoded = jwt.decode(token,"jkasgfjasgfkjgas9867876jukfbas54536asf4fufy7",algorithms=['HS256']) #TODO:read from config
+    user = token_decoded['sub']
+    user_genres = userUtils.get_user_genres(db,user)
+    return user_genres
 
 

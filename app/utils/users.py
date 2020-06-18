@@ -26,3 +26,7 @@ def create_user(db: Session, user: userSchema.UserCreate):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def get_user_genres(db:Session,email:str):
+    user = db.query(userModel).filter(userModel.email == email).first()
+    return user.genre_combo
