@@ -20,7 +20,7 @@ queue.use('upvotes')
 ######
 
 DATA_FETCH_SIZE_MOVIE = 5
-
+USE_CACHE = True
 
 MovieModel = movie_model.MovieModel
 
@@ -75,10 +75,10 @@ def get_movies_from_db (db_session,paging_state):
     return response_dict
 
 
-def get_top_movies_from_redis_timelines(timelines:list,count:int,page:int):
-    offset = (page-1) * count
-    res_set = r.zrange('movies', offset, offset+count-1, withscores=True,desc=True)
-    return res_set
+# def get_top_movies_from_redis_timelines(timelines:list,count:int,page:int):
+#     offset = (page-1) * count
+#     res_set = r.zrange('movies', offset, offset+count-1, withscores=True,desc=True)
+#     return res_set
 
 
 def get_top_movies_from_redis(count:int,page:int):
@@ -120,6 +120,29 @@ def get_movies_from_db2(db_session,user,paging_state):
 
 
 #demo function to filter from main list##########################################
+def get_top_movies_from_redis_timeline(timeline_key:str,count:int,page:int):
+    # offset = (page-1) * count
+    offset = page + 1
+    res_set = r.zrange(timeline_key, offset, offset+count-1, withscores=True,desc=True)
+    return res_set
+
+
+
+def get_timeline_key(genre_filter:list):
+    genre_list = sorted(genre_filter)
+    genre_list = ','.join(genre_list)
+    timeline_key = 'timeline:'+genre_list
+    return timeline_key
+
+def cache_exists(timeline_key:str):
+    timeline_status = r.get(timeline_key)
+    if timeline_status == None:
+        return 'false'
+    if timeline_status == '0':
+        return 'processing'
+    elif timeline_status == '1':
+        return 'true'
+
 
 async def get_data_from_main_db(db_session,user,movie_ids):
     result_dict  = {
@@ -144,29 +167,51 @@ async def get_data_from_main_db(db_session,user,movie_ids):
             'id':result['id'],'user_voted':if_user_voted(user_upvoted_movies,result['id'])},results))
     return result_dict
 
-async def get_movies_from_db_temp(db_session,user,genre_filter,paging_state):    
+async def get_movies_from_db_temp(db_session,user,genre_filter,paging_state):
+    has_cache = False
+    if USE_CACHE:
+        timeline_key = get_timeline_key(genre_filter)
+        cache_status = cache_exists(genre_filter)
+        if cache_status == 'false':
+            print('===no cache')#create cache lookup entry with status 0/processing and return
+        elif cache_status =='processing':
+            print('required_cache_under_processing')
+        elif cache_status =='true':
+            has_cache = True    
+
     counter = 0
     cache_pointer = paging_state
     result_ids = []
-    res = get_top_movies_from_redis(1000,paging_state)
+    if has_cache:
+        res = get_top_movies_from_redis_timeline(timeline_key,10,paging_state)
+    else:
+        res = get_top_movies_from_redis(1000,paging_state)
     top_ids = []
     for movie in res:
         top_ids.append(movie[0])
-    genre_filter = genre_filter.split(',')
-    pipe = r.pipeline()
-    for top_id in top_ids:
-        pipe.hmget(top_id,genre_filter)
-    genre_exists = pipe.execute()
-    for i in range(len(top_ids)):
-        cache_pointer +=1
-        if b'1' in genre_exists[i]:
+    
+    if has_cache:
+        for i in range(len(top_ids)):
             result_ids.append(uuid.UUID(top_ids[i].decode("utf-8")))
-            counter +=1 
-            if counter == 10:
-                result_dict = await get_data_from_main_db(db_session,user,result_ids)
-                return result_dict,counter,cache_pointer  
-    result_dict = await get_data_from_main_db(db_session,user,result_ids)
-    return result_dict,counter,cache_pointer
+        result_dict = await get_data_from_main_db(db_session,user,result_ids)
+        return result_dict,counter,cache_pointer
+    else:
+        genre_filter = genre_filter.split(',')
+        pipe = r.pipeline()
+        for top_id in top_ids:
+            pipe.hmget(top_id,genre_filter)
+        genre_exists = pipe.execute()
+        
+        for i in range(len(top_ids)):
+            cache_pointer +=1
+            if b'1' in genre_exists[i]:
+                result_ids.append(uuid.UUID(top_ids[i].decode("utf-8")))
+                counter +=1 
+                if counter == 10:
+                    result_dict = await get_data_from_main_db(db_session,user,result_ids)
+                    return result_dict,counter,cache_pointer  
+        result_dict = await get_data_from_main_db(db_session,user,result_ids)
+        return result_dict,counter,cache_pointer
     
     # return result_ids,counter,cache_pointer
 
