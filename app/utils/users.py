@@ -21,7 +21,7 @@ def get_user_by_email_auth(db: Session, email: str):
 
 def create_user(db: Session, user: userSchema.UserCreate):
     hashed_password = authUtils.get_password_hash(user.password)
-    db_user = userModel(email=user.email, hashed_password=hashed_password)
+    db_user = userModel(email=user.email, hashed_password=hashed_password,genre_combo=user.genre_combo)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

@@ -8,6 +8,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    genre_combo: str
 
 
 class User(UserBase):

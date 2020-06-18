@@ -83,7 +83,7 @@ def get_movies_from_db (db_session,paging_state):
 
 def get_top_movies_from_redis(count:int,page:int):
     # offset = (page-1) * count
-    offset = page + 1
+    offset = page
     res_set = r.zrange('movies', offset, offset+count-1, withscores=True,desc=True)
     return res_set
 
