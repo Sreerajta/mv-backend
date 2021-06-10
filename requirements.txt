@@ -11,7 +11,7 @@ click==7.1.2
 cryptography==2.9.2
 dnspython==1.16.0
 email-validator==1.1.1
-fastapi==0.54.2
+fastapi==0.65.2
 geomet==0.1.2
 graphene==2.1.8
 graphql-core==2.3.2
